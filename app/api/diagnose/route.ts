@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 職業：${personA.job || '未記入'}
 
 上記の手のひら画像を鑑定し、JSONのみで返答してください。`
-      
+
       parts.push({ text: prompt })
       parts.push({
         inlineData: {
@@ -152,16 +152,15 @@ JSONのみで返答してください。`
 
     const result = await model.generateContent(parts)
     const text = result.response.text()
-    
-    // JSONを抽出
+
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       return NextResponse.json({ error: 'Invalid response format' }, { status: 500 })
     }
-    
+
     const data = JSON.parse(jsonMatch[0])
     return NextResponse.json({ result: data })
-    
+
   } catch (e: unknown) {
     console.error(e)
     const message = e instanceof Error ? e.message : 'Unknown error'
