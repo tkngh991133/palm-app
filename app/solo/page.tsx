@@ -15,6 +15,11 @@ interface PersonData {
   job: string
 }
 
+// 年・月・日のセレクトボックス用
+const years = Array.from({length: 100}, (_, i) => 1930 + i).reverse()
+const months = Array.from({length: 12}, (_, i) => i + 1)
+const days = Array.from({length: 31}, (_, i) => i + 1)
+
 export default function SoloPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('input')
@@ -22,20 +27,25 @@ export default function SoloPage() {
     imageBase64: '', imageMime: '', imageUrl: '',
     birthdate: '', gender: '', job: '',
   })
+  const [year, setYear] = useState('1980')
+  const [month, setMonth] = useState('1')
+  const [day, setDay] = useState('1')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
 
-  const canSubmit = person.imageBase64 && person.birthdate && person.gender
+  const getBirthdate = () => `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+  const canSubmit = person.imageBase64 && year && month && day && person.gender
 
   const handleDiagnose = async () => {
     setStep('loading')
     setError('')
+    const birthdate = getBirthdate()
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'solo', personA: person }),
+        body: JSON.stringify({ mode: 'solo', personA: {...person, birthdate} }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
@@ -46,6 +56,14 @@ export default function SoloPage() {
       setError(message)
       setStep('input')
     }
+  }
+
+  const selectStyle = {
+    flex: 1, padding: '12px 8px',
+    background: '#110e1f', border: '1px solid #2e2850',
+    borderRadius: '10px', color: '#e8e0d0',
+    fontFamily: "'Noto Serif JP', serif", fontSize: '15px',
+    outline: 'none', WebkitAppearance: 'none' as const, cursor: 'pointer',
   }
 
   return (
@@ -75,14 +93,17 @@ export default function SoloPage() {
           <div className="card">
             <div style={{marginBottom: 16}}>
               <label className="form-label">生年月日</label>
-              <input
-                type="date"
-                className="form-input"
-                value={person.birthdate}
-                onChange={e => setPerson(p => ({...p, birthdate: e.target.value}))}
-                max={new Date().toISOString().split('T')[0]}
-                style={{colorScheme: 'dark'}}
-              />
+              <div style={{display: 'flex', gap: 6}}>
+                <select value={year} onChange={e => setYear(e.target.value)} style={selectStyle}>
+                  {years.map(y => <option key={y} value={y}>{y}年</option>)}
+                </select>
+                <select value={month} onChange={e => setMonth(e.target.value)} style={selectStyle}>
+                  {months.map(m => <option key={m} value={m}>{m}月</option>)}
+                </select>
+                <select value={day} onChange={e => setDay(e.target.value)} style={selectStyle}>
+                  {days.map(d => <option key={d} value={d}>{d}日</option>)}
+                </select>
+              </div>
             </div>
 
             <div style={{marginBottom: 16}}>
@@ -107,6 +128,9 @@ export default function SoloPage() {
                 placeholder="例：会社員、自営業、学生..."
                 value={person.job}
                 onChange={e => setPerson(p => ({...p, job: e.target.value}))}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
               />
             </div>
           </div>
@@ -121,11 +145,7 @@ export default function SoloPage() {
             </div>
           )}
 
-          <button
-            className="btn-gold"
-            onClick={handleDiagnose}
-            disabled={!canSubmit}
-          >
+          <button className="btn-gold" onClick={handleDiagnose} disabled={!canSubmit}>
             ✦ 鑑定する ✦
           </button>
         </div>
@@ -140,16 +160,12 @@ export default function SoloPage() {
               AIが深く思考中です。しばらくお待ちください
             </div>
           </div>
-          <div style={{
-            display: 'flex', gap: 8, marginTop: 8,
-          }}>
+          <div style={{display: 'flex', gap: 8, marginTop: 8}}>
             {['生命線', '感情線', '運命線'].map((line, i) => (
               <div key={line} style={{
                 fontSize: 11, color: 'var(--gold-dim)', letterSpacing: '0.1em',
                 animation: `pulse 1.5s ease-in-out ${i * 0.5}s infinite`,
-              }}>
-                {line}
-              </div>
+              }}>{line}</div>
             ))}
           </div>
         </div>
@@ -158,19 +174,16 @@ export default function SoloPage() {
       {step === 'result' && result && (
         <div className="fade-in">
           <div style={{
-            textAlign: 'center', marginBottom: 24,
-            padding: '16px', background: 'var(--surface)',
-            border: '1px solid var(--border)', borderRadius: 12,
+            textAlign: 'center', marginBottom: 24, padding: '16px',
+            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
           }}>
             <div style={{fontSize: 12, color: 'var(--text-dim)', marginBottom: 4}}>鑑定完了</div>
             <div style={{fontSize: 14, color: 'var(--text)', lineHeight: 1.7}}>
-              {person.birthdate} 生まれ　{person.gender}
+              {year}年{month}月{day}日生まれ　{person.gender}
               {person.job ? `　${person.job}` : ''}
             </div>
           </div>
-
           <DiagnosisResult result={result} />
-
           <div style={{marginTop: 24}}>
             <button className="btn-primary" onClick={() => {
               setPerson({ imageBase64: '', imageMime: '', imageUrl: '', birthdate: '', gender: '', job: '' })

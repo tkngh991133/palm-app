@@ -48,14 +48,8 @@ export default function ImageUploader({ imageUrl, onImage, label }: Props) {
           </div>
         ) : (
           <div>
-            <div style={{
-              fontSize: 40, marginBottom: 12,
-              filter: 'grayscale(1)', opacity: 0.4,
-            }}>✋</div>
-            <div style={{
-              fontSize: 14, color: 'var(--text-dim)', marginBottom: 6,
-              letterSpacing: '0.05em',
-            }}>
+            <div style={{fontSize: 40, marginBottom: 12, filter: 'grayscale(1)', opacity: 0.4}}>✋</div>
+            <div style={{fontSize: 14, color: 'var(--text-dim)', marginBottom: 6, letterSpacing: '0.05em'}}>
               タップして手のひら画像を選択
             </div>
             <div style={{fontSize: 11, color: 'var(--text-dim)', letterSpacing: '0.05em'}}>
@@ -64,11 +58,11 @@ export default function ImageUploader({ imageUrl, onImage, label }: Props) {
           </div>
         )}
       </div>
+      {/* captureを削除→iOSでカメラ＋ライブラリ両方選択可能に */}
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleChange}
         style={{display: 'none'}}
       />

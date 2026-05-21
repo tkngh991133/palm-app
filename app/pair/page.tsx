@@ -16,32 +16,57 @@ interface PersonData {
   job: string
 }
 
+interface DateState {
+  year: string
+  month: string
+  day: string
+}
+
 const emptyPerson = (): PersonData => ({
   name: '', imageBase64: '', imageMime: '', imageUrl: '',
   birthdate: '', gender: '', job: '',
 })
+
+const years = Array.from({length: 100}, (_, i) => 1930 + i).reverse()
+const months = Array.from({length: 12}, (_, i) => i + 1)
+const days = Array.from({length: 31}, (_, i) => i + 1)
+
+const selectStyle = {
+  flex: 1, padding: '12px 8px',
+  background: '#110e1f', border: '1px solid #2e2850',
+  borderRadius: '10px', color: '#e8e0d0',
+  fontFamily: "'Noto Serif JP', serif", fontSize: '15px',
+  outline: 'none', WebkitAppearance: 'none' as const, cursor: 'pointer',
+}
 
 export default function PairPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('personA')
   const [personA, setPersonA] = useState<PersonData>(emptyPerson())
   const [personB, setPersonB] = useState<PersonData>(emptyPerson())
+  const [dateA, setDateA] = useState<DateState>({year:'1980', month:'1', day:'1'})
+  const [dateB, setDateB] = useState<DateState>({year:'1980', month:'1', day:'1'})
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'A' | 'B' | 'compat'>('compat')
 
-  const canNextA = personA.imageBase64 && personA.birthdate && personA.gender && personA.name
-  const canNextB = personB.imageBase64 && personB.birthdate && personB.gender && personB.name
+  const getBirthdate = (d: DateState) =>
+    `${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`
+
+  const canNextA = personA.imageBase64 && dateA.year && dateA.month && dateA.day && personA.gender && personA.name
+  const canNextB = personB.imageBase64 && dateB.year && dateB.month && dateB.day && personB.gender && personB.name
 
   const handleDiagnose = async () => {
     setStep('loading')
     setError('')
+    const pA = {...personA, birthdate: getBirthdate(dateA)}
+    const pB = {...personB, birthdate: getBirthdate(dateB)}
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'pair', personA, personB }),
+        body: JSON.stringify({ mode: 'pair', personA: pA, personB: pB }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
@@ -54,24 +79,23 @@ export default function PairPage() {
     }
   }
 
-  const PersonForm = ({ 
-    person, setPerson, label, color 
-  }: { 
+  const PersonForm = ({
+    person, setPerson, dateState, setDateState, label, color,
+  }: {
     person: PersonData
     setPerson: (p: PersonData) => void
+    dateState: DateState
+    setDateState: (d: DateState) => void
     label: string
     color: string
   }) => (
     <div>
-      <div style={{
-        textAlign: 'center', marginBottom: 20,
-        fontSize: 13, color, letterSpacing: '0.2em',
-      }}>
+      <div style={{textAlign:'center', marginBottom:20, fontSize:13, color, letterSpacing:'0.2em'}}>
         {label}
       </div>
 
       <div className="card">
-        <div style={{marginBottom: 16}}>
+        <div style={{marginBottom: 14}}>
           <label className="form-label">名前</label>
           <input
             type="text"
@@ -79,9 +103,11 @@ export default function PairPage() {
             placeholder="お名前を入力"
             value={person.name}
             onChange={e => setPerson({...person, name: e.target.value})}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
           />
         </div>
-
         <ImageUploader
           imageUrl={person.imageUrl || null}
           onImage={(b64, mime, url) => setPerson({...person, imageBase64: b64, imageMime: mime, imageUrl: url})}
@@ -90,19 +116,22 @@ export default function PairPage() {
       </div>
 
       <div className="card">
-        <div style={{marginBottom: 16}}>
+        <div style={{marginBottom: 14}}>
           <label className="form-label">生年月日</label>
-          <input
-            type="date"
-            className="form-input"
-            value={person.birthdate}
-            onChange={e => setPerson({...person, birthdate: e.target.value})}
-            max={new Date().toISOString().split('T')[0]}
-            style={{colorScheme: 'dark'}}
-          />
+          <div style={{display:'flex', gap:6}}>
+            <select value={dateState.year} onChange={e => setDateState({...dateState, year: e.target.value})} style={selectStyle}>
+              {years.map(y => <option key={y} value={y}>{y}年</option>)}
+            </select>
+            <select value={dateState.month} onChange={e => setDateState({...dateState, month: e.target.value})} style={selectStyle}>
+              {months.map(m => <option key={m} value={m}>{m}月</option>)}
+            </select>
+            <select value={dateState.day} onChange={e => setDateState({...dateState, day: e.target.value})} style={selectStyle}>
+              {days.map(d => <option key={d} value={d}>{d}日</option>)}
+            </select>
+          </div>
         </div>
 
-        <div style={{marginBottom: 16}}>
+        <div style={{marginBottom: 14}}>
           <label className="form-label">性別</label>
           <select
             className="form-select"
@@ -124,18 +153,14 @@ export default function PairPage() {
             placeholder="例：会社員、自営業、学生..."
             value={person.job}
             onChange={e => setPerson({...person, job: e.target.value})}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
           />
         </div>
       </div>
     </div>
   )
-
-  const stepLabels: Record<Step, string> = {
-    personA: '一人目の情報',
-    personB: '二人目の情報',
-    loading: '鑑定中',
-    result: '鑑定結果',
-  }
 
   return (
     <div className="page-container">
@@ -150,31 +175,20 @@ export default function PairPage() {
         <div className="app-title">徳永の手相診断</div>
         <div className="app-subtitle">二人鑑定</div>
         <div className="gold-divider"><span>✦</span></div>
-        {step !== 'loading' && step !== 'result' && (
-          <div style={{fontSize: 12, color: 'var(--text-dim)', letterSpacing: '0.1em'}}>
-            {stepLabels[step]}
-          </div>
-        )}
       </div>
 
-      {/* ステップインジケーター */}
       {(step === 'personA' || step === 'personB') && (
-        <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24}}>
-          {(['personA', 'personB'] as const).map((s, i) => (
-            <div key={s} style={{display: 'flex', alignItems: 'center', gap: 8}}>
+        <div style={{display:'flex', justifyContent:'center', gap:8, marginBottom:24}}>
+          {(['personA','personB'] as const).map((s, i) => (
+            <div key={s} style={{display:'flex', alignItems:'center', gap:8}}>
               <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: step === s ? 'var(--gold)' : step === 'personB' && s === 'personA' ? 'var(--gold-dim)' : 'var(--border)',
+                width:28, height:28, borderRadius:'50%',
+                background: step === s ? 'var(--gold)' : (step === 'personB' && s === 'personA') ? 'var(--gold-dim)' : 'var(--border)',
                 color: step === s ? '#1a1208' : 'var(--text-dim)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700,
-                transition: 'all 0.3s',
-              }}>
-                {i + 1}
-              </div>
-              {i === 0 && (
-                <div style={{width: 40, height: 1, background: step === 'personB' ? 'var(--gold-dim)' : 'var(--border)'}} />
-              )}
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:13, fontWeight:700, transition:'all 0.3s',
+              }}>{i + 1}</div>
+              {i === 0 && <div style={{width:40, height:1, background: step === 'personB' ? 'var(--gold-dim)' : 'var(--border)'}} />}
             </div>
           ))}
         </div>
@@ -183,16 +197,11 @@ export default function PairPage() {
       {step === 'personA' && (
         <div className="fade-in">
           <PersonForm
-            person={personA}
-            setPerson={setPersonA}
-            label="▶ 一人目"
-            color="var(--gold2)"
+            person={personA} setPerson={setPersonA}
+            dateState={dateA} setDateState={setDateA}
+            label="▶ 一人目" color="var(--gold2)"
           />
-          <button
-            className="btn-gold"
-            onClick={() => setStep('personB')}
-            disabled={!canNextA}
-          >
+          <button className="btn-gold" onClick={() => setStep('personB')} disabled={!canNextA}>
             次へ → 二人目の入力
           </button>
         </div>
@@ -201,25 +210,18 @@ export default function PairPage() {
       {step === 'personB' && (
         <div className="fade-in">
           <PersonForm
-            person={personB}
-            setPerson={setPersonB}
-            label="▶ 二人目"
-            color="var(--accent2)"
+            person={personB} setPerson={setPersonB}
+            dateState={dateB} setDateState={setDateB}
+            label="▶ 二人目" color="var(--accent2)"
           />
           {error && (
             <div style={{
-              background: 'rgba(212,96,122,0.1)', border: '1px solid rgba(212,96,122,0.3)',
-              borderRadius: 10, padding: '12px 16px', marginBottom: 16,
-              fontSize: 13, color: '#d4607a', lineHeight: 1.7,
-            }}>
-              {error}
-            </div>
+              background:'rgba(212,96,122,0.1)', border:'1px solid rgba(212,96,122,0.3)',
+              borderRadius:10, padding:'12px 16px', marginBottom:16,
+              fontSize:13, color:'#d4607a', lineHeight:1.7,
+            }}>{error}</div>
           )}
-          <button
-            className="btn-gold"
-            onClick={handleDiagnose}
-            disabled={!canNextB}
-          >
+          <button className="btn-gold" onClick={handleDiagnose} disabled={!canNextB}>
             ✦ 二人の相性を鑑定する ✦
           </button>
         </div>
@@ -228,9 +230,9 @@ export default function PairPage() {
       {step === 'loading' && (
         <div className="loading-container">
           <div className="palm-loader" />
-          <div style={{textAlign: 'center'}}>
+          <div style={{textAlign:'center'}}>
             <div className="loading-text">二人の運命を読み解いています...</div>
-            <div style={{fontSize: 12, color: 'var(--text-dim)', marginTop: 8, letterSpacing: '0.1em'}}>
+            <div style={{fontSize:12, color:'var(--text-dim)', marginTop:8, letterSpacing:'0.1em'}}>
               それぞれの手相と相性を深く分析中です
             </div>
           </div>
@@ -239,26 +241,10 @@ export default function PairPage() {
 
       {step === 'result' && result && (
         <div className="fade-in">
-          {/* タブ */}
           <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'compat' ? 'active' : ''}`}
-              onClick={() => setActiveTab('compat')}
-            >
-              ⚡ 相性
-            </button>
-            <button
-              className={`tab ${activeTab === 'A' ? 'active' : ''}`}
-              onClick={() => setActiveTab('A')}
-            >
-              {personA.name}
-            </button>
-            <button
-              className={`tab ${activeTab === 'B' ? 'active' : ''}`}
-              onClick={() => setActiveTab('B')}
-            >
-              {personB.name}
-            </button>
+            <button className={`tab ${activeTab === 'compat' ? 'active' : ''}`} onClick={() => setActiveTab('compat')}>⚡ 相性</button>
+            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{personA.name}</button>
+            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{personB.name}</button>
           </div>
 
           {activeTab === 'compat' && result.相性 && (
@@ -267,26 +253,14 @@ export default function PairPage() {
                 <div className="compat-score-number">{result.相性.スコア}</div>
                 <div className="compat-score-label">COMPATIBILITY SCORE</div>
               </div>
-
-              {[
-                { key: '恋愛相性', emoji: '💕' },
-                { key: '仕事相性', emoji: '💼' },
-                { key: '信頼関係', emoji: '🤝' },
-              ].map(({ key, emoji }) => (
-                <div key={key} className="card" style={{marginBottom: 12}}>
-                  <div style={{
-                    fontSize: 12, color: 'var(--gold)', letterSpacing: '0.15em', marginBottom: 10,
-                    display: 'flex', alignItems: 'center', gap: 8,
-                  }}>
-                    <span>{emoji}</span>
-                    {key}
+              {[{key:'恋愛相性', emoji:'💕'}, {key:'仕事相性', emoji:'💼'}, {key:'信頼関係', emoji:'🤝'}].map(({key, emoji}) => (
+                <div key={key} className="card" style={{marginBottom:12}}>
+                  <div style={{fontSize:12, color:'var(--gold)', letterSpacing:'0.15em', marginBottom:10, display:'flex', alignItems:'center', gap:8}}>
+                    <span>{emoji}</span>{key}
                   </div>
-                  <div style={{fontSize: 14, lineHeight: 1.9, color: 'var(--text)'}}>
-                    {result.相性[key]}
-                  </div>
+                  <div style={{fontSize:14, lineHeight:1.9, color:'var(--text)'}}>{result.相性[key]}</div>
                 </div>
               ))}
-
               <div className="result-summary">
                 <div className="result-summary-title">✦ 相性総評 ✦</div>
                 <div className="result-summary-text">{result.相性.総評}</div>
@@ -294,20 +268,15 @@ export default function PairPage() {
             </div>
           )}
 
-          {activeTab === 'A' && result.personA && (
-            <DiagnosisResult result={result.personA} name={personA.name} />
-          )}
+          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={personA.name} />}
+          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={personB.name} />}
 
-          {activeTab === 'B' && result.personB && (
-            <DiagnosisResult result={result.personB} name={personB.name} />
-          )}
-
-          <div style={{marginTop: 24}}>
+          <div style={{marginTop:24}}>
             <button className="btn-primary" onClick={() => {
-              setPersonA(emptyPerson())
-              setPersonB(emptyPerson())
-              setResult(null)
-              setStep('personA')
+              setPersonA(emptyPerson()); setPersonB(emptyPerson())
+              setDateA({year:'1980', month:'1', day:'1'})
+              setDateB({year:'1980', month:'1', day:'1'})
+              setResult(null); setStep('personA')
             }}>
               もう一度鑑定する
             </button>
