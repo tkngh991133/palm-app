@@ -35,7 +35,6 @@ export default function ImageUploader({ imageUrl, onImage, label }: Props) {
       >
         {imageUrl ? (
           <div style={{position: 'relative'}}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={imageUrl} alt="手のひら" />
             <div style={{
               position: 'absolute', bottom: 12, right: 12,
@@ -58,7 +57,6 @@ export default function ImageUploader({ imageUrl, onImage, label }: Props) {
           </div>
         )}
       </div>
-      {/* captureを削除→iOSでカメラ＋ライブラリ両方選択可能に */}
       <input
         ref={fileRef}
         type="file"
