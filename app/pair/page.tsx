@@ -93,7 +93,6 @@ export default function PairPage() {
       <div style={{textAlign:'center', marginBottom:20, fontSize:13, color, letterSpacing:'0.2em'}}>
         {label}
       </div>
-
       <div className="card">
         <div style={{marginBottom: 14}}>
           <label className="form-label">名前</label>
@@ -114,7 +113,6 @@ export default function PairPage() {
           label="手のひら画像"
         />
       </div>
-
       <div className="card">
         <div style={{marginBottom: 14}}>
           <label className="form-label">生年月日</label>
@@ -130,7 +128,6 @@ export default function PairPage() {
             </select>
           </div>
         </div>
-
         <div style={{marginBottom: 14}}>
           <label className="form-label">性別</label>
           <select
@@ -144,7 +141,6 @@ export default function PairPage() {
             <option value="その他">その他</option>
           </select>
         </div>
-
         <div>
           <label className="form-label">職業（任意）</label>
           <input
