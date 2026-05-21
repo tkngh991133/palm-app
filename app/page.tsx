@@ -6,7 +6,6 @@ export default function Home() {
 
   return (
     <div className="page-container">
-      {/* 星のデコレーション */}
       <div style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden'
       }}>
@@ -34,10 +33,8 @@ export default function Home() {
         </p>
       </div>
 
-      {/* 手のひらイラスト */}
       <div style={{
-        textAlign: 'center', margin: '32px 0',
-        position: 'relative',
+        textAlign: 'center', margin: '32px 0', position: 'relative',
       }} className="fade-in-1">
         <div style={{
           width: 120, height: 140, margin: '0 auto',
@@ -47,7 +44,6 @@ export default function Home() {
           position: 'relative',
           boxShadow: '0 0 40px rgba(201,168,76,0.1)',
         }}>
-          {/* 線のデコレーション */}
           <svg width="120" height="140" style={{position:'absolute',top:0,left:0}} viewBox="0 0 120 140">
             <path d="M30 100 Q50 70 60 40" stroke="rgba(201,168,76,0.4)" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
             <path d="M25 110 Q55 90 80 75" stroke="rgba(155,111,212,0.4)" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
@@ -61,7 +57,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* モード選択 */}
       <div className="fade-in-2">
         <div style={{
           fontSize: '11px', letterSpacing: '0.25em', color: 'var(--text-dim)',
@@ -69,7 +64,6 @@ export default function Home() {
         }}>
           診断モードを選択
         </div>
-
         <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
           <button className="btn-primary" onClick={() => router.push('/solo')} style={{
             padding: '22px 20px', textAlign: 'left', display: 'flex',
@@ -83,7 +77,6 @@ export default function Home() {
             </div>
             <span style={{color: 'var(--gold-dim)', fontSize: '20px'}}>→</span>
           </button>
-
           <button className="btn-primary" onClick={() => router.push('/pair')} style={{
             padding: '22px 20px', textAlign: 'left', display: 'flex',
             justifyContent: 'space-between', alignItems: 'center',
