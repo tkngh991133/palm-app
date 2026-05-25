@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUploader from '../components/ImageUploader'
 import DiagnosisResult from '../components/DiagnosisResult'
@@ -46,10 +46,10 @@ export default function PairPage() {
   const [personB, setPersonB] = useState<PersonData>(emptyPerson())
   const [dateA, setDateA] = useState<DateState>({year:'1980', month:'1', day:'1'})
   const [dateB, setDateB] = useState<DateState>({year:'1980', month:'1', day:'1'})
-  const nameARef = useRef<HTMLInputElement>(null)
-  const nameBRef = useRef<HTMLInputElement>(null)
-  const jobARef = useRef<HTMLInputElement>(null)
-  const jobBRef = useRef<HTMLInputElement>(null)
+  const [nameA, setNameA] = useState('')
+  const [nameB, setNameB] = useState('')
+  const [jobA, setJobA] = useState('')
+  const [jobB, setJobB] = useState('')
   const [validationError, setValidationError] = useState('')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null)
@@ -59,30 +59,23 @@ export default function PairPage() {
   const getBirthdate = (d: DateState) =>
     `${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`
 
-const handleNextA = () => {
-    nameARef.current?.blur()
-    jobARef.current?.blur()
-    const name = nameARef.current?.value?.trim() || ''
-    if (!name) { setValidationError('名前を入力してください'); return }
+  const handleNextA = () => {
+    if (!nameA.trim()) { setValidationError('名前を入力してください'); return }
     if (!personA.imageBase64) { setValidationError('手のひら画像を選択してください'); return }
     if (!personA.gender) { setValidationError('性別を選択してください'); return }
     setValidationError('')
-    setPersonA(p => ({...p, name, job: jobARef.current?.value || ''}))
     setStep('personB')
   }
 
-const handleDiagnose = async () => {
-    nameBRef.current?.blur()
-    jobBRef.current?.blur()
-    const name = nameBRef.current?.value?.trim() || ''
-    if (!name) { setValidationError('名前を入力してください'); return }
+  const handleDiagnose = async () => {
+    if (!nameB.trim()) { setValidationError('名前を入力してください'); return }
     if (!personB.imageBase64) { setValidationError('手のひら画像を選択してください'); return }
     if (!personB.gender) { setValidationError('性別を選択してください'); return }
     setValidationError('')
     setStep('loading')
     setError('')
-    const pA = {...personA, birthdate: getBirthdate(dateA)}
-    const pB = {...personB, name, job: jobBRef.current?.value || '', birthdate: getBirthdate(dateB)}
+    const pA = {...personA, name: nameA, job: jobA, birthdate: getBirthdate(dateA)}
+    const pB = {...personB, name: nameB, job: jobB, birthdate: getBirthdate(dateB)}
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
@@ -101,7 +94,8 @@ const handleDiagnose = async () => {
   }
 
   const PersonForm = ({
-    person, setPerson, dateState, setDateState, label, color, nameRef, jobRef,
+    person, setPerson, dateState, setDateState, label, color,
+    name, onNameBlur, job, onJobBlur,
   }: {
     person: PersonData
     setPerson: (p: PersonData) => void
@@ -109,8 +103,10 @@ const handleDiagnose = async () => {
     setDateState: (d: DateState) => void
     label: string
     color: string
-    nameRef: React.RefObject<HTMLInputElement | null>
-    jobRef: React.RefObject<HTMLInputElement | null>
+    name: string
+    onNameBlur: (v: string) => void
+    job: string
+    onJobBlur: (v: string) => void
   }) => (
     <div>
       <div style={{textAlign:'center', marginBottom:20, fontSize:13, color, letterSpacing:'0.2em'}}>
@@ -120,11 +116,11 @@ const handleDiagnose = async () => {
         <div style={{marginBottom: 14}}>
           <label className="form-label">名前</label>
           <input
-            ref={nameRef}
             type="text"
             className="form-input"
             placeholder="お名前を入力"
-            defaultValue=""
+            defaultValue={name}
+            onBlur={e => onNameBlur(e.target.value)}
           />
         </div>
         <ImageUploader
@@ -164,11 +160,11 @@ const handleDiagnose = async () => {
         <div>
           <label className="form-label">職業（任意）</label>
           <input
-            ref={jobRef}
             type="text"
             className="form-input"
             placeholder="例：会社員、自営業、学生..."
-            defaultValue=""
+            defaultValue={job}
+            onBlur={e => onJobBlur(e.target.value)}
           />
         </div>
       </div>
@@ -213,7 +209,8 @@ const handleDiagnose = async () => {
             person={personA} setPerson={setPersonA}
             dateState={dateA} setDateState={setDateA}
             label="▶ 一人目" color="var(--gold2)"
-            nameRef={nameARef} jobRef={jobARef}
+            name={nameA} onNameBlur={setNameA}
+            job={jobA} onJobBlur={setJobA}
           />
           {validationError && (
             <div style={{
@@ -234,7 +231,8 @@ const handleDiagnose = async () => {
             person={personB} setPerson={setPersonB}
             dateState={dateB} setDateState={setDateB}
             label="▶ 二人目" color="var(--accent2)"
-            nameRef={nameBRef} jobRef={jobBRef}
+            name={nameB} onNameBlur={setNameB}
+            job={jobB} onJobBlur={setJobB}
           />
           {(validationError || error) && (
             <div style={{
@@ -265,8 +263,8 @@ const handleDiagnose = async () => {
         <div className="fade-in">
           <div className="tabs">
             <button className={`tab ${activeTab === 'compat' ? 'active' : ''}`} onClick={() => setActiveTab('compat')}>⚡ 相性</button>
-            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{personA.name}</button>
-            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{personB.name}</button>
+            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{nameA}</button>
+            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{nameB}</button>
           </div>
 
           {activeTab === 'compat' && result.相性 && (
@@ -290,14 +288,16 @@ const handleDiagnose = async () => {
             </div>
           )}
 
-          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={personA.name} />}
-          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={personB.name} />}
+          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={nameA} />}
+          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={nameB} />}
 
           <div style={{marginTop:24}}>
             <button className="btn-primary" onClick={() => {
               setPersonA(emptyPerson()); setPersonB(emptyPerson())
               setDateA({year:'1980', month:'1', day:'1'})
               setDateB({year:'1980', month:'1', day:'1'})
+              setNameA(''); setNameB('')
+              setJobA(''); setJobB('')
               setResult(null); setStep('personA')
             }}>
               もう一度鑑定する
