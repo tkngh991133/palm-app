@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUploader from '../components/ImageUploader'
 import DiagnosisResult from '../components/DiagnosisResult'
@@ -10,9 +10,7 @@ interface PersonData {
   imageBase64: string
   imageMime: string
   imageUrl: string
-  birthdate: string
   gender: string
-  job: string
 }
 
 const years = Array.from({length: 100}, (_, i) => 1930 + i).reverse()
@@ -23,12 +21,12 @@ export default function SoloPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('input')
   const [person, setPerson] = useState<PersonData>({
-    imageBase64: '', imageMime: '', imageUrl: '',
-    birthdate: '', gender: '', job: '',
+    imageBase64: '', imageMime: '', imageUrl: '', gender: '',
   })
   const [year, setYear] = useState('1980')
   const [month, setMonth] = useState('1')
   const [day, setDay] = useState('1')
+  const jobRef = useRef<HTMLInputElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
@@ -40,11 +38,12 @@ export default function SoloPage() {
     setStep('loading')
     setError('')
     const birthdate = getBirthdate()
+    const job = jobRef.current?.value || ''
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'solo', personA: {...person, birthdate} }),
+        body: JSON.stringify({ mode: 'solo', personA: {...person, birthdate, job} }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
@@ -122,14 +121,11 @@ export default function SoloPage() {
             <div>
               <label className="form-label">職業（任意）</label>
               <input
+                ref={jobRef}
                 type="text"
                 className="form-input"
                 placeholder="例：会社員、自営業、学生..."
-                value={person.job}
-                onChange={e => setPerson(p => ({...p, job: e.target.value}))}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
+                defaultValue=""
               />
             </div>
           </div>
@@ -179,13 +175,12 @@ export default function SoloPage() {
             <div style={{fontSize: 12, color: 'var(--text-dim)', marginBottom: 4}}>鑑定完了</div>
             <div style={{fontSize: 14, color: 'var(--text)', lineHeight: 1.7}}>
               {year}年{month}月{day}日生まれ　{person.gender}
-              {person.job ? `　${person.job}` : ''}
             </div>
           </div>
           <DiagnosisResult result={result} />
           <div style={{marginTop: 24}}>
             <button className="btn-primary" onClick={() => {
-              setPerson({ imageBase64: '', imageMime: '', imageUrl: '', birthdate: '', gender: '', job: '' })
+              setPerson({ imageBase64: '', imageMime: '', imageUrl: '', gender: '' })
               setResult(null)
               setStep('input')
             }}>
