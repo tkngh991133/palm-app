@@ -62,35 +62,43 @@ export default function PairPage() {
   const canNextB = personB.imageBase64 && personB.gender
 
   const handleNextA = () => {
-    const name = nameARef.current?.value?.trim() || ''
-    if (!name) { setError('名前を入力してください'); return }
-    setPersonA(p => ({...p, name, job: jobARef.current?.value || p.job}))
-    setError('')
-    setStep('personB')
+    nameARef.current?.blur()
+    jobARef.current?.blur()
+    setTimeout(() => {
+      const name = nameARef.current?.value?.trim() || ''
+      if (!name) { setError('名前を入力してください'); return }
+      setPersonA(p => ({...p, name, job: jobARef.current?.value || p.job}))
+      setError('')
+      setStep('personB')
+    }, 300)
   }
 
   const handleDiagnose = async () => {
-    const name = nameBRef.current?.value?.trim() || ''
-    if (!name) { setError('名前を入力してください'); return }
-    setError('')
-    setStep('loading')
-    const pA = {...personA, birthdate: getBirthdate(dateA)}
-    const pB = {...personB, name, job: jobBRef.current?.value || personB.job, birthdate: getBirthdate(dateB)}
-    try {
-      const res = await fetch('/api/diagnose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'pair', personA: pA, personB: pB }),
-      })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-      setResult(data.result)
-      setStep('result')
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '診断に失敗しました'
-      setError(message)
-      setStep('personB')
-    }
+    nameBRef.current?.blur()
+    jobBRef.current?.blur()
+    setTimeout(async () => {
+      const name = nameBRef.current?.value?.trim() || ''
+      if (!name) { setError('名前を入力してください'); return }
+      setError('')
+      setStep('loading')
+      const pA = {...personA, birthdate: getBirthdate(dateA)}
+      const pB = {...personB, name, job: jobBRef.current?.value || personB.job, birthdate: getBirthdate(dateB)}
+      try {
+        const res = await fetch('/api/diagnose', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'pair', personA: pA, personB: pB }),
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error)
+        setResult(data.result)
+        setStep('result')
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : '診断に失敗しました'
+        setError(message)
+        setStep('personB')
+      }
+    }, 300)
   }
 
   const PersonForm = ({
