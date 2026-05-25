@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUploader from '../components/ImageUploader'
 import DiagnosisResult from '../components/DiagnosisResult'
@@ -46,6 +46,10 @@ export default function PairPage() {
   const [personB, setPersonB] = useState<PersonData>(emptyPerson())
   const [dateA, setDateA] = useState<DateState>({year:'1980', month:'1', day:'1'})
   const [dateB, setDateB] = useState<DateState>({year:'1980', month:'1', day:'1'})
+  const nameARef = useRef<HTMLInputElement>(null)
+  const nameBRef = useRef<HTMLInputElement>(null)
+  const jobARef = useRef<HTMLInputElement>(null)
+  const jobBRef = useRef<HTMLInputElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
@@ -54,14 +58,14 @@ export default function PairPage() {
   const getBirthdate = (d: DateState) =>
     `${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`
 
-  const canNextA = personA.imageBase64 && dateA.year && dateA.month && dateA.day && personA.gender && personA.name
-  const canNextB = personB.imageBase64 && dateB.year && dateB.month && dateB.day && personB.gender && personB.name
+  const canNextA = personA.imageBase64 && dateA.year && dateA.month && dateA.day && personA.gender && (nameARef.current?.value || personA.name)
+  const canNextB = personB.imageBase64 && dateB.year && dateB.month && dateB.day && personB.gender && (nameBRef.current?.value || personB.name)
 
   const handleDiagnose = async () => {
     setStep('loading')
     setError('')
-    const pA = {...personA, birthdate: getBirthdate(dateA)}
-    const pB = {...personB, birthdate: getBirthdate(dateB)}
+    const pA = {...personA, name: nameARef.current?.value || personA.name, job: jobARef.current?.value || personA.job, birthdate: getBirthdate(dateA)}
+    const pB = {...personB, name: nameBRef.current?.value || personB.name, job: jobBRef.current?.value || personB.job, birthdate: getBirthdate(dateB)}
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
@@ -80,7 +84,7 @@ export default function PairPage() {
   }
 
   const PersonForm = ({
-    person, setPerson, dateState, setDateState, label, color,
+    person, setPerson, dateState, setDateState, label, color, nameRef, jobRef,
   }: {
     person: PersonData
     setPerson: (p: PersonData) => void
@@ -88,23 +92,23 @@ export default function PairPage() {
     setDateState: (d: DateState) => void
     label: string
     color: string
+    nameRef: React.RefObject<HTMLInputElement | null>
+    jobRef: React.RefObject<HTMLInputElement | null>
   }) => (
     <div>
       <div style={{textAlign:'center', marginBottom:20, fontSize:13, color, letterSpacing:'0.2em'}}>
         {label}
       </div>
+
       <div className="card">
         <div style={{marginBottom: 14}}>
           <label className="form-label">名前</label>
           <input
+            ref={nameRef}
             type="text"
             className="form-input"
             placeholder="お名前を入力"
-            value={person.name}
-            onChange={e => setPerson({...person, name: e.target.value})}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
+            defaultValue={person.name}
           />
         </div>
         <ImageUploader
@@ -113,6 +117,7 @@ export default function PairPage() {
           label="手のひら画像"
         />
       </div>
+
       <div className="card">
         <div style={{marginBottom: 14}}>
           <label className="form-label">生年月日</label>
@@ -128,6 +133,7 @@ export default function PairPage() {
             </select>
           </div>
         </div>
+
         <div style={{marginBottom: 14}}>
           <label className="form-label">性別</label>
           <select
@@ -141,17 +147,15 @@ export default function PairPage() {
             <option value="その他">その他</option>
           </select>
         </div>
+
         <div>
           <label className="form-label">職業（任意）</label>
           <input
+            ref={jobRef}
             type="text"
             className="form-input"
             placeholder="例：会社員、自営業、学生..."
-            value={person.job}
-            onChange={e => setPerson({...person, job: e.target.value})}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
+            defaultValue={person.job}
           />
         </div>
       </div>
@@ -196,8 +200,12 @@ export default function PairPage() {
             person={personA} setPerson={setPersonA}
             dateState={dateA} setDateState={setDateA}
             label="▶ 一人目" color="var(--gold2)"
+            nameRef={nameARef} jobRef={jobARef}
           />
-          <button className="btn-gold" onClick={() => setStep('personB')} disabled={!canNextA}>
+          <button className="btn-gold" onClick={() => {
+            setPersonA(p => ({...p, name: nameARef.current?.value || p.name, job: jobARef.current?.value || p.job}))
+            setStep('personB')
+          }} disabled={!canNextA}>
             次へ → 二人目の入力
           </button>
         </div>
@@ -209,6 +217,7 @@ export default function PairPage() {
             person={personB} setPerson={setPersonB}
             dateState={dateB} setDateState={setDateB}
             label="▶ 二人目" color="var(--accent2)"
+            nameRef={nameBRef} jobRef={jobBRef}
           />
           {error && (
             <div style={{
