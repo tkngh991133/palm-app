@@ -46,8 +46,8 @@ export default function PairPage() {
   const [personB, setPersonB] = useState<PersonData>(emptyPerson())
   const [dateA, setDateA] = useState<DateState>({year:'1980', month:'1', day:'1'})
   const [dateB, setDateB] = useState<DateState>({year:'1980', month:'1', day:'1'})
-  const nameARef = useRef<HTMLInputElement>(null)
-  const nameBRef = useRef<HTMLInputElement>(null)
+  const [nameA, setNameA] = useState('')
+  const [nameB, setNameB] = useState('')
   const jobARef = useRef<HTMLInputElement>(null)
   const jobBRef = useRef<HTMLInputElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,14 +58,14 @@ export default function PairPage() {
   const getBirthdate = (d: DateState) =>
     `${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`
 
-  const canNextA = personA.imageBase64 && dateA.year && dateA.month && dateA.day && personA.gender && (nameARef.current?.value || personA.name)
-  const canNextB = personB.imageBase64 && dateB.year && dateB.month && dateB.day && personB.gender && (nameBRef.current?.value || personB.name)
+  const canNextA = personA.imageBase64 && personA.gender && nameA.trim()
+  const canNextB = personB.imageBase64 && personB.gender && nameB.trim()
 
   const handleDiagnose = async () => {
     setStep('loading')
     setError('')
-    const pA = {...personA, name: nameARef.current?.value || personA.name, job: jobARef.current?.value || personA.job, birthdate: getBirthdate(dateA)}
-    const pB = {...personB, name: nameBRef.current?.value || personB.name, job: jobBRef.current?.value || personB.job, birthdate: getBirthdate(dateB)}
+    const pA = {...personA, name: nameA, job: jobARef.current?.value || '', birthdate: getBirthdate(dateA)}
+    const pB = {...personB, name: nameB, job: jobBRef.current?.value || '', birthdate: getBirthdate(dateB)}
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
@@ -84,7 +84,7 @@ export default function PairPage() {
   }
 
   const PersonForm = ({
-    person, setPerson, dateState, setDateState, label, color, nameRef, jobRef,
+    person, setPerson, dateState, setDateState, label, color, name, setName, jobRef,
   }: {
     person: PersonData
     setPerson: (p: PersonData) => void
@@ -92,7 +92,8 @@ export default function PairPage() {
     setDateState: (d: DateState) => void
     label: string
     color: string
-    nameRef: React.RefObject<HTMLInputElement | null>
+    name: string
+    setName: (v: string) => void
     jobRef: React.RefObject<HTMLInputElement | null>
   }) => (
     <div>
@@ -104,11 +105,11 @@ export default function PairPage() {
         <div style={{marginBottom: 14}}>
           <label className="form-label">名前</label>
           <input
-            ref={nameRef}
             type="text"
             className="form-input"
             placeholder="お名前を入力"
-            defaultValue={person.name}
+            value={name}
+            onChange={e => setName(e.target.value)}
           />
         </div>
         <ImageUploader
@@ -155,7 +156,7 @@ export default function PairPage() {
             type="text"
             className="form-input"
             placeholder="例：会社員、自営業、学生..."
-            defaultValue={person.job}
+            defaultValue=""
           />
         </div>
       </div>
@@ -200,12 +201,10 @@ export default function PairPage() {
             person={personA} setPerson={setPersonA}
             dateState={dateA} setDateState={setDateA}
             label="▶ 一人目" color="var(--gold2)"
-            nameRef={nameARef} jobRef={jobARef}
+            name={nameA} setName={setNameA}
+            jobRef={jobARef}
           />
-          <button className="btn-gold" onClick={() => {
-            setPersonA(p => ({...p, name: nameARef.current?.value || p.name, job: jobARef.current?.value || p.job}))
-            setStep('personB')
-          }} disabled={!canNextA}>
+          <button className="btn-gold" onClick={() => setStep('personB')} disabled={!canNextA}>
             次へ → 二人目の入力
           </button>
         </div>
@@ -217,7 +216,8 @@ export default function PairPage() {
             person={personB} setPerson={setPersonB}
             dateState={dateB} setDateState={setDateB}
             label="▶ 二人目" color="var(--accent2)"
-            nameRef={nameBRef} jobRef={jobBRef}
+            name={nameB} setName={setNameB}
+            jobRef={jobBRef}
           />
           {error && (
             <div style={{
@@ -248,8 +248,8 @@ export default function PairPage() {
         <div className="fade-in">
           <div className="tabs">
             <button className={`tab ${activeTab === 'compat' ? 'active' : ''}`} onClick={() => setActiveTab('compat')}>⚡ 相性</button>
-            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{personA.name}</button>
-            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{personB.name}</button>
+            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{nameA}</button>
+            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{nameB}</button>
           </div>
 
           {activeTab === 'compat' && result.相性 && (
@@ -273,14 +273,15 @@ export default function PairPage() {
             </div>
           )}
 
-          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={personA.name} />}
-          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={personB.name} />}
+          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={nameA} />}
+          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={nameB} />}
 
           <div style={{marginTop:24}}>
             <button className="btn-primary" onClick={() => {
               setPersonA(emptyPerson()); setPersonB(emptyPerson())
               setDateA({year:'1980', month:'1', day:'1'})
               setDateB({year:'1980', month:'1', day:'1'})
+              setNameA(''); setNameB('')
               setResult(null); setStep('personA')
             }}>
               もう一度鑑定する
