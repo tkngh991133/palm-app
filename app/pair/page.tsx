@@ -267,24 +267,28 @@ export default function PairPage() {
             <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{nameB}</button>
           </div>
 
-          {activeTab === 'compat' && result.相性 && (
+{activeTab === 'compat' && result.相性 && (
             <div>
               <div className="compat-score">
                 <div className="compat-score-number">{result.相性.スコア}</div>
                 <div className="compat-score-label">COMPATIBILITY SCORE</div>
               </div>
-              {[{key:'恋愛相性', emoji:'💕'}, {key:'仕事相性', emoji:'💼'}, {key:'信頼関係', emoji:'🤝'}].map(({key, emoji}) => (
+              <div className="result-summary" style={{marginBottom:16}}>
+                <div className="result-summary-title">✦ 相性総評 ✦</div>
+                <div className="result-summary-text">
+                  {result.相性.総評?.replace(/Aさん/g, personA.name).replace(/Bさん/g, personB.name)}
+                </div>
+              </div>
+              {[{key:'恋愛相性', emoji:'💕'}, {key:'信頼関係', emoji:'🤝'}, {key:'仕事相性', emoji:'💼'}].map(({key, emoji}) => (
                 <div key={key} className="card" style={{marginBottom:12}}>
                   <div style={{fontSize:12, color:'var(--gold)', letterSpacing:'0.15em', marginBottom:10, display:'flex', alignItems:'center', gap:8}}>
                     <span>{emoji}</span>{key}
                   </div>
-                  <div style={{fontSize:14, lineHeight:1.9, color:'var(--text)'}}>{result.相性[key]}</div>
+                  <div style={{fontSize:14, lineHeight:1.9, color:'var(--text)'}}>
+                    {result.相性[key]?.replace(/Aさん/g, personA.name).replace(/Bさん/g, personB.name)}
+                  </div>
                 </div>
               ))}
-              <div className="result-summary">
-                <div className="result-summary-title">✦ 相性総評 ✦</div>
-                <div className="result-summary-text">{result.相性.総評}</div>
-              </div>
             </div>
           )}
 
