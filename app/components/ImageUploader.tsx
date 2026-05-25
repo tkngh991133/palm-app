@@ -11,14 +11,26 @@ export default function ImageUploader({ imageUrl, onImage, label }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const result = e.target?.result as string
-      const base64 = result.split(',')[1]
-      const url = result
-      onImage(base64, file.type, url)
+    const img = new window.Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const MAX = 1024
+      let w = img.width, h = img.height
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX }
+        else { w = Math.round(w * MAX / h); h = MAX }
+      }
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, w, h)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+      const base64 = dataUrl.split(',')[1]
+      URL.revokeObjectURL(objectUrl)
+      onImage(base64, 'image/jpeg', dataUrl)
     }
-    reader.readAsDataURL(file)
+    img.src = objectUrl
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
