@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUploader from '../components/ImageUploader'
 import DiagnosisResult from '../components/DiagnosisResult'
@@ -46,10 +46,10 @@ export default function PairPage() {
   const [personB, setPersonB] = useState<PersonData>(emptyPerson())
   const [dateA, setDateA] = useState<DateState>({year:'1980', month:'1', day:'1'})
   const [dateB, setDateB] = useState<DateState>({year:'1980', month:'1', day:'1'})
-  const nameARef = useRef<HTMLInputElement>(null)
-  const nameBRef = useRef<HTMLInputElement>(null)
-  const jobARef = useRef<HTMLInputElement>(null)
-  const jobBRef = useRef<HTMLInputElement>(null)
+  const [nameA, setNameA] = useState('')
+  const [nameB, setNameB] = useState('')
+  const [jobA, setJobA] = useState('')
+  const [jobB, setJobB] = useState('')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
@@ -62,47 +62,41 @@ export default function PairPage() {
   const canNextB = personB.imageBase64 && personB.gender
 
   const handleNextA = () => {
-    nameARef.current?.blur()
-    jobARef.current?.blur()
-    setTimeout(() => {
-      const name = nameARef.current?.value?.trim() || ''
-      if (!name) { setError('名前を入力してください'); return }
-      setPersonA(p => ({...p, name, job: jobARef.current?.value || p.job}))
-      setError('')
-      setStep('personB')
-    }, 300)
+    if (!nameA.trim()) { setError('名前を入力してください'); return }
+    if (!personA.imageBase64) { setError('手のひら画像を選択してください'); return }
+    if (!personA.gender) { setError('性別を選択してください'); return }
+    setError('')
+    setStep('personB')
   }
 
   const handleDiagnose = async () => {
-    nameBRef.current?.blur()
-    jobBRef.current?.blur()
-    setTimeout(async () => {
-      const name = nameBRef.current?.value?.trim() || ''
-      if (!name) { setError('名前を入力してください'); return }
-      setError('')
-      setStep('loading')
-      const pA = {...personA, birthdate: getBirthdate(dateA)}
-      const pB = {...personB, name, job: jobBRef.current?.value || personB.job, birthdate: getBirthdate(dateB)}
-      try {
-        const res = await fetch('/api/diagnose', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'pair', personA: pA, personB: pB }),
-        })
-        const data = await res.json()
-        if (data.error) throw new Error(data.error)
-        setResult(data.result)
-        setStep('result')
-      } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : '診断に失敗しました'
-        setError(message)
-        setStep('personB')
-      }
-    }, 300)
+    if (!nameB.trim()) { setError('名前を入力してください'); return }
+    if (!personB.imageBase64) { setError('手のひら画像を選択してください'); return }
+    if (!personB.gender) { setError('性別を選択してください'); return }
+    setError('')
+    setStep('loading')
+    const pA = {...personA, name: nameA, job: jobA, birthdate: getBirthdate(dateA)}
+    const pB = {...personB, name: nameB, job: jobB, birthdate: getBirthdate(dateB)}
+    try {
+      const res = await fetch('/api/diagnose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'pair', personA: pA, personB: pB }),
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setResult(data.result)
+      setStep('result')
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '診断に失敗しました'
+      setError(message)
+      setStep('personB')
+    }
   }
 
   const PersonForm = ({
-    person, setPerson, dateState, setDateState, label, color, nameRef, jobRef,
+    person, setPerson, dateState, setDateState, label, color,
+    name, setName, job, setJob,
   }: {
     person: PersonData
     setPerson: (p: PersonData) => void
@@ -110,8 +104,10 @@ export default function PairPage() {
     setDateState: (d: DateState) => void
     label: string
     color: string
-    nameRef: React.RefObject<HTMLInputElement | null>
-    jobRef: React.RefObject<HTMLInputElement | null>
+    name: string
+    setName: (v: string) => void
+    job: string
+    setJob: (v: string) => void
   }) => (
     <div>
       <div style={{textAlign:'center', marginBottom:20, fontSize:13, color, letterSpacing:'0.2em'}}>
@@ -121,11 +117,12 @@ export default function PairPage() {
         <div style={{marginBottom: 14}}>
           <label className="form-label">名前</label>
           <input
-            ref={nameRef}
             type="text"
             className="form-input"
             placeholder="お名前を入力"
-            defaultValue={person.name}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onCompositionEnd={e => setName((e.target as HTMLInputElement).value)}
           />
         </div>
         <ImageUploader
@@ -165,11 +162,12 @@ export default function PairPage() {
         <div>
           <label className="form-label">職業（任意）</label>
           <input
-            ref={jobRef}
             type="text"
             className="form-input"
             placeholder="例：会社員、自営業、学生..."
-            defaultValue={person.job}
+            value={job}
+            onChange={e => setJob(e.target.value)}
+            onCompositionEnd={e => setJob((e.target as HTMLInputElement).value)}
           />
         </div>
       </div>
@@ -214,7 +212,8 @@ export default function PairPage() {
             person={personA} setPerson={setPersonA}
             dateState={dateA} setDateState={setDateA}
             label="▶ 一人目" color="var(--gold2)"
-            nameRef={nameARef} jobRef={jobARef}
+            name={nameA} setName={setNameA}
+            job={jobA} setJob={setJobA}
           />
           {error && (
             <div style={{
@@ -235,7 +234,8 @@ export default function PairPage() {
             person={personB} setPerson={setPersonB}
             dateState={dateB} setDateState={setDateB}
             label="▶ 二人目" color="var(--accent2)"
-            nameRef={nameBRef} jobRef={jobBRef}
+            name={nameB} setName={setNameB}
+            job={jobB} setJob={setJobB}
           />
           {error && (
             <div style={{
@@ -266,8 +266,8 @@ export default function PairPage() {
         <div className="fade-in">
           <div className="tabs">
             <button className={`tab ${activeTab === 'compat' ? 'active' : ''}`} onClick={() => setActiveTab('compat')}>⚡ 相性</button>
-            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{personA.name}</button>
-            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{personB.name}</button>
+            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{nameA}</button>
+            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{nameB}</button>
           </div>
 
           {activeTab === 'compat' && result.相性 && (
@@ -279,7 +279,7 @@ export default function PairPage() {
               <div className="result-summary" style={{marginBottom:16}}>
                 <div className="result-summary-title">✦ 相性総評 ✦</div>
                 <div className="result-summary-text">
-                  {result.相性.総評?.replace(/Aさん/g, personA.name).replace(/Bさん/g, personB.name)}
+                  {result.相性.総評?.replace(/Aさん/g, nameA).replace(/Bさん/g, nameB)}
                 </div>
               </div>
               {[{key:'恋愛相性', emoji:'💕'}, {key:'信頼関係', emoji:'🤝'}, {key:'仕事相性', emoji:'💼'}].map(({key, emoji}) => (
@@ -288,21 +288,23 @@ export default function PairPage() {
                     <span>{emoji}</span>{key}
                   </div>
                   <div style={{fontSize:14, lineHeight:1.9, color:'var(--text)'}}>
-                    {result.相性[key]?.replace(/Aさん/g, personA.name).replace(/Bさん/g, personB.name)}
+                    {result.相性[key]?.replace(/Aさん/g, nameA).replace(/Bさん/g, nameB)}
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={personA.name} />}
-          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={personB.name} />}
+          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={nameA} />}
+          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={nameB} />}
 
           <div style={{marginTop:24}}>
             <button className="btn-primary" onClick={() => {
               setPersonA(emptyPerson()); setPersonB(emptyPerson())
               setDateA({year:'1980', month:'1', day:'1'})
               setDateB({year:'1980', month:'1', day:'1'})
+              setNameA(''); setNameB('')
+              setJobA(''); setJobB('')
               setResult(null); setStep('personA')
             }}>
               もう一度鑑定する
