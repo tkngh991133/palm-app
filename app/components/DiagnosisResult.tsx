@@ -48,6 +48,13 @@ export default function DiagnosisResult({ result, name }: Props) {
         </div>
       )}
 
+      {result.総評 && (
+        <div className="result-summary fade-in" style={{marginBottom: 16}}>
+          <div className="result-summary-title">✦ 総 評 ✦</div>
+          <div className="result-summary-text">{result.総評}</div>
+        </div>
+      )}
+
       {SECTIONS.map(({ key, emoji, desc }) => {
         const sectionData = result[key as keyof typeof result]
         if (!sectionData || typeof sectionData === 'string') return null
@@ -88,13 +95,6 @@ export default function DiagnosisResult({ result, name }: Props) {
           </div>
         )
       })}
-
-      {result.総評 && (
-        <div className="result-summary fade-in">
-          <div className="result-summary-title">✦ 総 評 ✦</div>
-          <div className="result-summary-text">{result.総評}</div>
-        </div>
-      )}
     </div>
   )
 }
