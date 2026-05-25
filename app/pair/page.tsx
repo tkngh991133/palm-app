@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import ImageUploader from '../components/ImageUploader'
 import DiagnosisResult from '../components/DiagnosisResult'
+import TextInput from '../components/TextInput'
 
 type Step = 'personA' | 'personB' | 'loading' | 'result'
 
@@ -46,10 +47,10 @@ export default function PairPage() {
   const [personB, setPersonB] = useState<PersonData>(emptyPerson())
   const [dateA, setDateA] = useState<DateState>({year:'1980', month:'1', day:'1'})
   const [dateB, setDateB] = useState<DateState>({year:'1980', month:'1', day:'1'})
-  const [nameA, setNameA] = useState('')
-  const [nameB, setNameB] = useState('')
-  const [jobA, setJobA] = useState('')
-  const [jobB, setJobB] = useState('')
+  const nameARef = useRef('')
+  const nameBRef = useRef('')
+  const jobARef = useRef('')
+  const jobBRef = useRef('')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
@@ -62,21 +63,20 @@ export default function PairPage() {
   const canNextB = personB.imageBase64 && personB.gender
 
   const handleNextA = () => {
-    if (!nameA.trim()) { setError('名前を入力してください'); return }
-    if (!personA.imageBase64) { setError('手のひら画像を選択してください'); return }
-    if (!personA.gender) { setError('性別を選択してください'); return }
+    const name = nameARef.current.trim()
+    if (!name) { setError('名前を入力してください'); return }
+    setPersonA(p => ({...p, name, job: jobARef.current}))
     setError('')
     setStep('personB')
   }
 
   const handleDiagnose = async () => {
-    if (!nameB.trim()) { setError('名前を入力してください'); return }
-    if (!personB.imageBase64) { setError('手のひら画像を選択してください'); return }
-    if (!personB.gender) { setError('性別を選択してください'); return }
+    const name = nameBRef.current.trim()
+    if (!name) { setError('名前を入力してください'); return }
     setError('')
     setStep('loading')
-    const pA = {...personA, name: nameA, job: jobA, birthdate: getBirthdate(dateA)}
-    const pB = {...personB, name: nameB, job: jobB, birthdate: getBirthdate(dateB)}
+    const pA = {...personA, birthdate: getBirthdate(dateA)}
+    const pB = {...personB, name, job: jobBRef.current, birthdate: getBirthdate(dateB)}
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
@@ -93,86 +93,6 @@ export default function PairPage() {
       setStep('personB')
     }
   }
-
-  const PersonForm = ({
-    person, setPerson, dateState, setDateState, label, color,
-    name, setName, job, setJob,
-  }: {
-    person: PersonData
-    setPerson: (p: PersonData) => void
-    dateState: DateState
-    setDateState: (d: DateState) => void
-    label: string
-    color: string
-    name: string
-    setName: (v: string) => void
-    job: string
-    setJob: (v: string) => void
-  }) => (
-    <div>
-      <div style={{textAlign:'center', marginBottom:20, fontSize:13, color, letterSpacing:'0.2em'}}>
-        {label}
-      </div>
-      <div className="card">
-        <div style={{marginBottom: 14}}>
-          <label className="form-label">名前</label>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="お名前を入力"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onCompositionEnd={e => setName((e.target as HTMLInputElement).value)}
-          />
-        </div>
-        <ImageUploader
-          imageUrl={person.imageUrl || null}
-          onImage={(b64, mime, url) => setPerson({...person, imageBase64: b64, imageMime: mime, imageUrl: url})}
-          label="手のひら画像"
-        />
-      </div>
-      <div className="card">
-        <div style={{marginBottom: 14}}>
-          <label className="form-label">生年月日</label>
-          <div style={{display:'flex', gap:6}}>
-            <select value={dateState.year} onChange={e => setDateState({...dateState, year: e.target.value})} style={selectStyle}>
-              {years.map(y => <option key={y} value={y}>{y}年</option>)}
-            </select>
-            <select value={dateState.month} onChange={e => setDateState({...dateState, month: e.target.value})} style={selectStyle}>
-              {months.map(m => <option key={m} value={m}>{m}月</option>)}
-            </select>
-            <select value={dateState.day} onChange={e => setDateState({...dateState, day: e.target.value})} style={selectStyle}>
-              {days.map(d => <option key={d} value={d}>{d}日</option>)}
-            </select>
-          </div>
-        </div>
-        <div style={{marginBottom: 14}}>
-          <label className="form-label">性別</label>
-          <select
-            className="form-select"
-            value={person.gender}
-            onChange={e => setPerson({...person, gender: e.target.value})}
-          >
-            <option value="">選択してください</option>
-            <option value="男性">男性</option>
-            <option value="女性">女性</option>
-            <option value="その他">その他</option>
-          </select>
-        </div>
-        <div>
-          <label className="form-label">職業（任意）</label>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="例：会社員、自営業、学生..."
-            value={job}
-            onChange={e => setJob(e.target.value)}
-            onCompositionEnd={e => setJob((e.target as HTMLInputElement).value)}
-          />
-        </div>
-      </div>
-    </div>
-  )
 
   return (
     <div className="page-container">
@@ -208,19 +128,61 @@ export default function PairPage() {
 
       {step === 'personA' && (
         <div className="fade-in">
-          <PersonForm
-            person={personA} setPerson={setPersonA}
-            dateState={dateA} setDateState={setDateA}
-            label="▶ 一人目" color="var(--gold2)"
-            name={nameA} setName={setNameA}
-            job={jobA} setJob={setJobA}
-          />
+          <div style={{textAlign:'center', marginBottom:20, fontSize:13, color:'var(--gold2)', letterSpacing:'0.2em'}}>
+            ▶ 一人目
+          </div>
+          <div className="card">
+            <div style={{marginBottom: 14}}>
+              <label className="form-label">名前</label>
+              <TextInput
+                className="form-input"
+                placeholder="お名前を入力"
+                onBlur={v => { nameARef.current = v }}
+              />
+            </div>
+            <ImageUploader
+              imageUrl={personA.imageUrl || null}
+              onImage={(b64, mime, url) => setPersonA(p => ({...p, imageBase64: b64, imageMime: mime, imageUrl: url}))}
+              label="手のひら画像"
+            />
+          </div>
+          <div className="card">
+            <div style={{marginBottom: 14}}>
+              <label className="form-label">生年月日</label>
+              <div style={{display:'flex', gap:6}}>
+                <select value={dateA.year} onChange={e => setDateA(d => ({...d, year: e.target.value}))} style={selectStyle}>
+                  {years.map(y => <option key={y} value={y}>{y}年</option>)}
+                </select>
+                <select value={dateA.month} onChange={e => setDateA(d => ({...d, month: e.target.value}))} style={selectStyle}>
+                  {months.map(m => <option key={m} value={m}>{m}月</option>)}
+                </select>
+                <select value={dateA.day} onChange={e => setDateA(d => ({...d, day: e.target.value}))} style={selectStyle}>
+                  {days.map(d => <option key={d} value={d}>{d}日</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{marginBottom: 14}}>
+              <label className="form-label">性別</label>
+              <select className="form-select" value={personA.gender} onChange={e => setPersonA(p => ({...p, gender: e.target.value}))}>
+                <option value="">選択してください</option>
+                <option value="男性">男性</option>
+                <option value="女性">女性</option>
+                <option value="その他">その他</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">職業（任意）</label>
+              <TextInput
+                className="form-input"
+                placeholder="例：会社員、自営業、学生..."
+                onBlur={v => { jobARef.current = v }}
+              />
+            </div>
+          </div>
           {error && (
-            <div style={{
-              background:'rgba(212,96,122,0.1)', border:'1px solid rgba(212,96,122,0.3)',
-              borderRadius:10, padding:'12px 16px', marginBottom:16,
-              fontSize:13, color:'#d4607a', lineHeight:1.7,
-            }}>{error}</div>
+            <div style={{background:'rgba(212,96,122,0.1)', border:'1px solid rgba(212,96,122,0.3)', borderRadius:10, padding:'12px 16px', marginBottom:16, fontSize:13, color:'#d4607a', lineHeight:1.7}}>
+              {error}
+            </div>
           )}
           <button className="btn-gold" onClick={handleNextA} disabled={!canNextA}>
             次へ → 二人目の入力
@@ -230,19 +192,61 @@ export default function PairPage() {
 
       {step === 'personB' && (
         <div className="fade-in">
-          <PersonForm
-            person={personB} setPerson={setPersonB}
-            dateState={dateB} setDateState={setDateB}
-            label="▶ 二人目" color="var(--accent2)"
-            name={nameB} setName={setNameB}
-            job={jobB} setJob={setJobB}
-          />
+          <div style={{textAlign:'center', marginBottom:20, fontSize:13, color:'var(--accent2)', letterSpacing:'0.2em'}}>
+            ▶ 二人目
+          </div>
+          <div className="card">
+            <div style={{marginBottom: 14}}>
+              <label className="form-label">名前</label>
+              <TextInput
+                className="form-input"
+                placeholder="お名前を入力"
+                onBlur={v => { nameBRef.current = v }}
+              />
+            </div>
+            <ImageUploader
+              imageUrl={personB.imageUrl || null}
+              onImage={(b64, mime, url) => setPersonB(p => ({...p, imageBase64: b64, imageMime: mime, imageUrl: url}))}
+              label="手のひら画像"
+            />
+          </div>
+          <div className="card">
+            <div style={{marginBottom: 14}}>
+              <label className="form-label">生年月日</label>
+              <div style={{display:'flex', gap:6}}>
+                <select value={dateB.year} onChange={e => setDateB(d => ({...d, year: e.target.value}))} style={selectStyle}>
+                  {years.map(y => <option key={y} value={y}>{y}年</option>)}
+                </select>
+                <select value={dateB.month} onChange={e => setDateB(d => ({...d, month: e.target.value}))} style={selectStyle}>
+                  {months.map(m => <option key={m} value={m}>{m}月</option>)}
+                </select>
+                <select value={dateB.day} onChange={e => setDateB(d => ({...d, day: e.target.value}))} style={selectStyle}>
+                  {days.map(d => <option key={d} value={d}>{d}日</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{marginBottom: 14}}>
+              <label className="form-label">性別</label>
+              <select className="form-select" value={personB.gender} onChange={e => setPersonB(p => ({...p, gender: e.target.value}))}>
+                <option value="">選択してください</option>
+                <option value="男性">男性</option>
+                <option value="女性">女性</option>
+                <option value="その他">その他</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">職業（任意）</label>
+              <TextInput
+                className="form-input"
+                placeholder="例：会社員、自営業、学生..."
+                onBlur={v => { jobBRef.current = v }}
+              />
+            </div>
+          </div>
           {error && (
-            <div style={{
-              background:'rgba(212,96,122,0.1)', border:'1px solid rgba(212,96,122,0.3)',
-              borderRadius:10, padding:'12px 16px', marginBottom:16,
-              fontSize:13, color:'#d4607a', lineHeight:1.7,
-            }}>{error}</div>
+            <div style={{background:'rgba(212,96,122,0.1)', border:'1px solid rgba(212,96,122,0.3)', borderRadius:10, padding:'12px 16px', marginBottom:16, fontSize:13, color:'#d4607a', lineHeight:1.7}}>
+              {error}
+            </div>
           )}
           <button className="btn-gold" onClick={handleDiagnose} disabled={!canNextB}>
             ✦ 二人の相性を鑑定する ✦
@@ -266,8 +270,8 @@ export default function PairPage() {
         <div className="fade-in">
           <div className="tabs">
             <button className={`tab ${activeTab === 'compat' ? 'active' : ''}`} onClick={() => setActiveTab('compat')}>⚡ 相性</button>
-            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{nameA}</button>
-            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{nameB}</button>
+            <button className={`tab ${activeTab === 'A' ? 'active' : ''}`} onClick={() => setActiveTab('A')}>{personA.name}</button>
+            <button className={`tab ${activeTab === 'B' ? 'active' : ''}`} onClick={() => setActiveTab('B')}>{personB.name}</button>
           </div>
 
           {activeTab === 'compat' && result.相性 && (
@@ -279,7 +283,7 @@ export default function PairPage() {
               <div className="result-summary" style={{marginBottom:16}}>
                 <div className="result-summary-title">✦ 相性総評 ✦</div>
                 <div className="result-summary-text">
-                  {result.相性.総評?.replace(/Aさん/g, nameA).replace(/Bさん/g, nameB)}
+                  {result.相性.総評?.replace(/Aさん/g, personA.name).replace(/Bさん/g, personB.name)}
                 </div>
               </div>
               {[{key:'恋愛相性', emoji:'💕'}, {key:'信頼関係', emoji:'🤝'}, {key:'仕事相性', emoji:'💼'}].map(({key, emoji}) => (
@@ -288,23 +292,23 @@ export default function PairPage() {
                     <span>{emoji}</span>{key}
                   </div>
                   <div style={{fontSize:14, lineHeight:1.9, color:'var(--text)'}}>
-                    {result.相性[key]?.replace(/Aさん/g, nameA).replace(/Bさん/g, nameB)}
+                    {result.相性[key]?.replace(/Aさん/g, personA.name).replace(/Bさん/g, personB.name)}
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={nameA} />}
-          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={nameB} />}
+          {activeTab === 'A' && result.personA && <DiagnosisResult result={result.personA} name={personA.name} />}
+          {activeTab === 'B' && result.personB && <DiagnosisResult result={result.personB} name={personB.name} />}
 
           <div style={{marginTop:24}}>
             <button className="btn-primary" onClick={() => {
               setPersonA(emptyPerson()); setPersonB(emptyPerson())
               setDateA({year:'1980', month:'1', day:'1'})
               setDateB({year:'1980', month:'1', day:'1'})
-              setNameA(''); setNameB('')
-              setJobA(''); setJobB('')
+              nameARef.current = ''; nameBRef.current = ''
+              jobARef.current = ''; jobBRef.current = ''
               setResult(null); setStep('personA')
             }}>
               もう一度鑑定する
