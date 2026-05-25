@@ -59,7 +59,9 @@ export default function PairPage() {
   const getBirthdate = (d: DateState) =>
     `${d.year}-${String(d.month).padStart(2,'0')}-${String(d.day).padStart(2,'0')}`
 
-  const handleNextA = () => {
+const handleNextA = () => {
+    nameARef.current?.blur()
+    jobARef.current?.blur()
     const name = nameARef.current?.value?.trim() || ''
     if (!name) { setValidationError('名前を入力してください'); return }
     if (!personA.imageBase64) { setValidationError('手のひら画像を選択してください'); return }
@@ -69,7 +71,9 @@ export default function PairPage() {
     setStep('personB')
   }
 
-  const handleDiagnose = async () => {
+const handleDiagnose = async () => {
+    nameBRef.current?.blur()
+    jobBRef.current?.blur()
     const name = nameBRef.current?.value?.trim() || ''
     if (!name) { setValidationError('名前を入力してください'); return }
     if (!personB.imageBase64) { setValidationError('手のひら画像を選択してください'); return }
