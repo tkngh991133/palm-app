@@ -106,7 +106,7 @@ setError('')
         }}>
           ← 戻る
         </button>
-        <div className="app-title">徳永の手相診断</div>
+        <div className="app-title" onClick={() => router.push('/')} style={{cursor:'pointer'}}>徳永の手相診断</div>
         <div className="app-subtitle">二人鑑定</div>
         <div className="gold-divider"><span>✦</span></div>
       </div>
