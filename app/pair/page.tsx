@@ -73,10 +73,12 @@ export default function PairPage() {
   const handleDiagnose = async () => {
     const name = nameBRef.current.trim()
     if (!name) { setError('名前を入力してください'); return }
-    setError('')
+setError('')
     setStep('loading')
+    const job = jobBRef.current
+    setPersonB(p => ({...p, name, job}))
     const pA = {...personA, birthdate: getBirthdate(dateA)}
-    const pB = {...personB, name, job: jobBRef.current, birthdate: getBirthdate(dateB)}
+    const pB = {...personB, name, job, birthdate: getBirthdate(dateB)}
     try {
       const res = await fetch('/api/diagnose', {
         method: 'POST',
